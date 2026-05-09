@@ -1,0 +1,203 @@
+<!-- Group Members Panel (Phase 1) - Add after messages container -->
+<div id="group-members-panel" class="group-members-panel hidden" style="
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 250px;
+    height: 100%;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    overflow-y: auto;
+">
+    <!-- Populated by JS -->
+</div>
+
+<!-- Group Message Input with Typing Indicator (Phase 1, 2) -->
+<div id="group-input-area" class="input-area hidden">
+    <div id="group-typing-indicator" class="typing-indicator"></div>
+    <div class="input-row">
+        <div class="input-wrap">
+            <button class="icon-btn" onclick="document.getElementById('group-file-input').click()" title="Attach File">
+                <i class="fa-solid fa-paperclip"></i>
+            </button>
+            <input type="file" id="group-file-input" style="display: none;">
+            <textarea 
+                id="group-message-input" 
+                class="message-textarea" 
+                placeholder="Type a message..." 
+                rows="1"
+                oninput="onGroupMessageInput()"
+            ></textarea>
+            <button class="send-btn" onclick="sendGroupMessage()" title="Send">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Group Modal (Phase 1) -->
+<div id="group-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3 id="group-modal-title">Create New Group</h3>
+            <button class="icon-btn" onclick="closeGroupModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Group Name</label>
+                <div class="form-input-wrap">
+                    <i class="fa-solid fa-users"></i>
+                    <input type="text" id="group-name-input" class="form-input" placeholder="Enter group name">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description (Optional)</label>
+                <textarea id="group-description-input" class="form-input" placeholder="What's this group about?" style="min-height: 80px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Add Members</label>
+                <div class="members-selector" id="members-selector" style="
+                    border: 1px solid var(--border);
+                    border-radius: 6px;
+                    max-height: 150px;
+                    overflow-y: auto;
+                    padding: 8px;
+                ">
+                    <!-- Populated by JS with user list -->
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary" onclick="saveNewGroup()">Create Group</button>
+        </div>
+    </div>
+</div>
+
+<!-- Group Settings Modal (Phase 1) -->
+<div id="group-settings-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3>Group Settings</h3>
+            <button class="icon-btn" onclick="closeGroupSettingsModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Notification Level (Phase 4)</label>
+                <select id="notification-level-select" class="form-input" style="padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                    <option value="all">All Messages</option>
+                    <option value="mentions_only">Mentions Only</option>
+                    <option value="muted">Muted</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Group Info</label>
+                <div style="padding: 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 0.9rem;">
+                    <div><strong>Created:</strong> <span id="group-created-date">—</span></div>
+                    <div><strong>Members:</strong> <span id="group-member-count">0</span></div>
+                    <div><strong>Messages:</strong> <span id="group-message-count">0</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary" onclick="closeGroupSettingsModal()">Close</button>
+            <button class="btn-danger" onclick="leaveGroup()">Leave Group</button>
+        </div>
+    </div>
+</div>
+
+<!-- Reaction Picker (Phase 3) - Will be dynamically created -->
+<style>
+.emoji-picker {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.emoji-btn {
+    padding: 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.5rem;
+    transition: all 0.2s ease;
+}
+
+.emoji-btn:hover {
+    background: var(--accent);
+    transform: scale(1.1);
+}
+
+.reaction-picker {
+    position: fixed;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.group-member-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.avatar-xs {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+
+.group-members-panel {
+    background: var(--bg-secondary) !important;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background: var(--bg-tertiary);
+    color: var(--accent);
+}
+</style>
+
+<!-- HTML Script includes at bottom of body -->
+<script src="{{ url_for('static', filename='group-features.js') }}"></script>
+
+<!-- Initialize groups after auth (add to initAppAfterAuth function) -->
+<script>
+// Call this after authentication
+function loadGroupsUI() {
+    loadGroups();
+    setupGroupSocketEvents();
+}
+</script>

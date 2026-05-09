@@ -1,0 +1,10 @@
+flask
+flask-sqlalchemy
+flask-jwt-extended
+flask-bcrypt
+flask-socketio
+pycryptodome
+python-dotenv
+flask-cors
+flask-talisman
+flask-mail

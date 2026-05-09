@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureMsg | End-to-End Encrypted Messaging</title>
+    <meta name="description" content="SecureMsg — A privacy-first, end-to-end encrypted messaging platform with RSA key exchange, AES-256-GCM encryption, and HMAC integrity verification.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Animated Background Mesh -->
+    <div class="bg-mesh"></div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <div id="app">
+
+        <!-- ════════════ AUTH SECTION ════════════ -->
+        <div id="auth-section" class="animate-in">
+            <div class="auth-logo"><i class="fa-solid fa-shield-halved"></i></div>
+            <h1 class="auth-title">Secure<span>Msg</span></h1>
+            <p class="auth-subtitle">Privacy-first, end-to-end encrypted messaging</p>
+
+            <!-- Login Form -->
+            <div id="login-form" class="auth-card">
+                <h2>Welcome back</h2>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <div class="form-input-wrap">
+                        <i class="fa-solid fa-user"></i>
+                        <input type="text" id="login-username" class="form-input" placeholder="Enter your username" autocomplete="username" onkeyup="if(event.key==='Enter') login()">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <div class="form-input-wrap">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="login-password" class="form-input" placeholder="Enter your password" autocomplete="current-password" onkeyup="if(event.key==='Enter') login()">
+                    </div>
+                </div>
+                <button onclick="login()" class="btn-primary">
+                    <i class="fa-solid fa-right-to-bracket"></i>&nbsp; Sign In
+                </button>
+                <p class="auth-switch">Forgot <a onclick="showForgot('username')">Username</a> or <a onclick="showForgot('password')">Password</a>?</p>
+                <p class="auth-switch">New here? <a onclick="toggleAuth()">Create an account</a></p>
+            </div>
+
+            <!-- Register Form -->
+            <div id="register-form" class="auth-card hidden">
+                <h2>Create account</h2>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <div class="form-input-wrap">
+                        <i class="fa-solid fa-user"></i>
+                        <input type="text" id="reg-username" class="form-input" placeholder="Choose a username" autocomplete="username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <div class="form-input-wrap">
+                        <i class="fa-solid fa-envelope"></i>
+                        <input type="email" id="reg-email" class="form-input" placeholder="you@example.com" autocomplete="email">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone Number</label>
+                    <div class="form-input-wrap">
+                        <i class="fa-solid fa-phone"></i>
+                        <input type="text" id="reg-phone" class="form-input" placeholder="e.g. +1234567890" autocomplete="tel">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <div class="form-input-wrap">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="reg-password" class="form-input" placeholder="Min 8 chars, mixed case, digit, symbol" autocomplete="new-password" onkeyup="if(event.key==='Enter') register()">
+                    </div>
+                    <div class="pwd-strength">
+                        <div class="pwd-bar"></div><div class="pwd-bar"></div><div class="pwd-bar"></div><div class="pwd-bar"></div><div class="pwd-bar"></div>
+                    </div>
+                    <div id="pwd-hint" class="pwd-hint"></div>
+                </div>
+                <button onclick="register()" class="btn-primary">
+                    <i class="fa-solid fa-user-plus"></i>&nbsp; Create Account
+                </button>
+                <p class="auth-switch">Already have an account? <a onclick="toggleAuth()">Sign In</a></p>
+            </div>
+
+            <!-- OTP Verification Form -->
+            <div id="otp-form" class="hidden">
+                <h1 class="auth-title">Verify Email</h1>
+                <p class="auth-subtitle">Enter the 6-digit code sent to your email.</p>
+                <input type="hidden" id="otp-user-id">
+                <div class="form-group">
+                    <label class="form-label">Verification Code</label>
+                    <div class="form-input-wrap">
+                        <i class="fa-solid fa-key"></i>
+                        <input type="text" id="otp-code" class="form-input" placeholder="000000" maxlength="6" autocomplete="off" style="letter-spacing: 4px; font-weight: bold; text-align: center;" onkeyup="if(event.key==='Enter') verifyOTP()">
+                    </div>
+                </div>
+                <button onclick="verifyOTP()" class="btn-primary">
+                    <i class="fa-solid fa-shield-check"></i>&nbsp; Verify Account
+                </button>
+                <p class="auth-switch">Didn't get a code? <a onclick="resendOTP()">Resend OTP</a></p>
+                <p class="auth-switch"><a onclick="resetAuthFlow()">Back to Login</a></p>
+            </div>
+
+            <!-- Forgot Request Form -->
+            <div id="forgot-form" class="hidden">
+                <h1 class="auth-title" id="forgot-title">Recover Account</h1>
+                <p class="auth-subtitle" id="forgot-subtitle">Enter your email to recover your details.</p>
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <div class="form-input-wrap">
+                        <i class="fa-solid fa-envelope"></i>
+                        <input type="email" id="forgot-email" class="form-input" placeholder="you@example.com" onkeyup="if(event.key==='Enter') requestRecovery()">
+                    </div>
+                </div>
+                <button onclick="requestRecovery()" class="btn-primary">
+                    <i class="fa-solid fa-paper-plane"></i>&nbsp; Send Recovery Info
+                </button>
+                <p class="auth-switch"><a onclick="resetAuthFlow()">Back to Login</a></p>
+            </div>
+
+            <!-- Password Reset Form -->
+            <div id="reset-form" class="hidden">
+                <h1 class="auth-title">Reset Password</h1>
+                <p class="auth-subtitle">Enter the code from your email and your new password.</p>
+                <input type="hidden" id="reset-user-id">
+                <div class="form-group">
+                    <label class="form-label">Reset Code (OTP)</label>
+                    <div class="form-input-wrap">
+                        <i class="fa-solid fa-key"></i>
+                        <input type="text" id="reset-otp" class="form-input" placeholder="000000" maxlength="6" style="letter-spacing:4px; text-align:center;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">New Password</label>
+                    <div class="form-input-wrap">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="reset-new-password" class="form-input" placeholder="Min 8 chars, mixed case..." onkeyup="if(event.key==='Enter') resetPassword()">
+                    </div>
+                </div>
+                <button onclick="resetPassword()" class="btn-primary">
+                    <i class="fa-solid fa-check-double"></i>&nbsp; Update Password
+                </button>
+                <p class="auth-switch"><a onclick="resetAuthFlow()">Back to Login</a></p>
+            </div>
+        </div>
+
+        <!-- ════════════ CHAT SECTION ════════════ -->
+        <div id="chat-section" class="hidden">
+
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <div class="user-info">
+                        <div class="avatar" style="position:relative;">
+                            <span id="user-avatar">?</span>
+                            <div class="online-dot"></div>
+                        </div>
+                        <div>
+                            <div class="user-name" id="current-username" onclick="showProfileModal()" style="cursor:pointer;" title="Click to edit profile">User</div>
+                            <div class="user-status-label">Authenticated <i class="fa-solid fa-pen" style="font-size:0.7rem; margin-left:4px;"></i></div>
+                        </div>
+                    </div>
+                    <div class="sidebar-actions">
+                        <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme" id="theme-toggle-btn">
+                            <i class="fa-solid fa-moon"></i>
+                        </button>
+                        <button class="icon-btn" onclick="toggleSecurityPanel()" title="Security Dashboard">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </button>
+                        <button class="icon-btn danger" onclick="logout()" title="Logout">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="search-wrap">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="search-input" class="search-input" placeholder="Search contacts...">
+                    </div>
+                </div>
+
+
+                <div class="contacts-label">Contacts</div>
+                <div class="contacts-list" id="users-list">
+                    <!-- Populated by JS -->
+                </div>
+            </aside>
+
+            <!-- Chat Main Area -->
+            <main class="chat-main">
+
+                <!-- Empty State -->
+                <div id="empty-chat-state" class="empty-state">
+                    <div class="empty-icon"><i class="fa-solid fa-comments"></i></div>
+                    <h2>No conversation selected</h2>
+                    <p>Select a contact from the sidebar to start an end-to-end encrypted chat.</p>
+                    <div class="encryption-badge" style="margin-top:16px;">
+                        <i class="fa-solid fa-lock"></i> AES-256-GCM + RSA-2048
+                    </div>
+                </div>
+
+                <!-- Chat Header -->
+                <div id="chat-header-bar" class="chat-header hidden">
+                    <div class="chat-header-info">
+                        <div style="position:relative;">
+                            <div class="avatar" id="chat-user-avatar">?</div>
+                        </div>
+                        <div>
+                            <div class="chat-header-name" id="chat-user-name">User</div>
+                            <div class="chat-header-status encrypted" id="chat-user-status">Online • Encrypted</div>
+                        </div>
+                        <div class="encryption-badge" style="margin-left:12px;">
+                            <i class="fa-solid fa-lock"></i> E2EE Active
+                        </div>
+                    </div>
+                    <div class="chat-header-actions">
+                        <div style="text-align:right;margin-right:8px;">
+                            <div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;">Key Fingerprint</div>
+                            <div id="key-fingerprint" style="font-size:0.65rem;color:var(--accent-light);font-family:monospace;letter-spacing:1px;">—</div>
+                        </div>
+                        <button class="icon-btn" onclick="clearChat()" title="Clear Chat History" style="margin-right:8px;">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                        <button class="icon-btn" onclick="toggleSecurityPanel()" title="Security Info">
+                            <i class="fa-solid fa-circle-info"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                <div id="messages-container" class="messages-container">
+                    <!-- Populated by JS -->
+                </div>
+
+                <!-- Typing Indicator -->
+                <div id="typing-indicator" class="typing-indicator"></div>
+
+                <!-- Input Area -->
+                <div id="message-input-area" class="input-area hidden">
+                    <div class="input-row" id="text-input-row">
+                        <div class="input-wrap">
+                            <button id="attach-btn" class="icon-btn" onclick="document.getElementById('file-input').click()" title="Attach File/Photo">
+                                <i class="fa-solid fa-paperclip"></i>
+                            </button>
+                            <input type="file" id="file-input" style="display: none;" onchange="handleFileAttachment(event)">
+                            <textarea id="message-input" class="message-textarea" placeholder="Type a message..." rows="1"></textarea>
+                            <button id="main-action-btn" class="send-btn" onclick="handleMainAction()" title="Send">
+                                <i class="fa-solid fa-microphone"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="input-row hidden" id="voice-recording-row">
+                        <div class="recording-ui">
+                            <div class="recording-indicator">
+                                <div class="red-dot"></div>
+                                <span id="recording-time">00:00</span>
+                                <span class="recording-text">Recording...</span>
+                            </div>
+                            <div class="recording-actions">
+                                <button class="icon-btn danger" onclick="cancelVoiceRecording()" title="Cancel">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                                <button class="send-btn" onclick="stopAndSendVoiceRecording()" title="Send Voice Message">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Panel (Slide-in) -->
+                <div id="security-panel" class="security-panel">
+                    <div class="security-panel-header">
+                        <h3><i class="fa-solid fa-shield-halved" style="color:var(--accent);margin-right:8px;"></i>Security Dashboard</h3>
+                        <button class="icon-btn" onclick="toggleSecurityPanel()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="security-panel-body">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-logins" style="color:var(--success);">0</div>
+                                <div class="stat-label">Successful Logins</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-failed" style="color:var(--danger);">0</div>
+                                <div class="stat-label">Failed Logins</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-alerts" style="color:var(--warning);">0</div>
+                                <div class="stat-label">Brute Force Alerts</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-keys" style="color:var(--accent-light);">0</div>
+                                <div class="stat-label">Key Updates</div>
+                            </div>
+                        </div>
+
+                        <h4 style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:12px;">
+                            <i class="fa-solid fa-clock-rotate-left" style="margin-right:6px;"></i>Recent Activity
+                        </h4>
+                        <div id="audit-log-list">
+                            <p style="color:var(--text-muted);font-size:0.8rem;">Loading...</p>
+                        </div>
+
+                        <div style="margin-top:24px;padding:16px;border-radius:14px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.15);">
+                            <h4 style="font-size:0.8rem;font-weight:700;color:var(--accent-light);margin-bottom:8px;"><i class="fa-solid fa-key" style="margin-right:6px;"></i>Encryption Info</h4>
+                            <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.7;">
+                                <div><strong>Algorithm:</strong> AES-256-GCM</div>
+                                <div><strong>Key Exchange:</strong> RSA-OAEP 2048-bit</div>
+                                <div><strong>Integrity:</strong> HMAC-SHA256</div>
+                                <div><strong>Password:</strong> bcrypt (12 rounds)</div>
+                                <div><strong>Auth:</strong> JWT (1h expiry)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="modal hidden">
+        <div class="modal-content animate-in">
+            <div class="modal-header">
+                <h3>Edit Profile</h3>
+                <button class="close-btn" onclick="closeProfileModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Profile Name</label>
+                    <div class="form-input-wrap">
+                        <i class="fa-solid fa-id-card"></i>
+                        <input type="text" id="edit-display-name" class="form-input" placeholder="Your display name">
+                    </div>
+                    <p style="font-size:0.75rem; color:var(--text-muted); margin-top:8px;">This name is shown to others in chat. It doesn't need to be unique.</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Profile Photo</label>
+                    <div class="form-input-wrap">
+                        <i class="fa-solid fa-image"></i>
+                        <input type="file" id="edit-profile-photo" class="form-input" accept="image/*">
+                    </div>
+                    <p style="font-size:0.75rem; color:var(--text-muted); margin-top:8px;">Optional: upload a small image (JPG/PNG/WebP). Leave empty to keep current photo.</p>
+                </div>
+                <button onclick="updateProfile()" class="btn-primary" style="margin-top:16px;">
+                    <i class="fa-solid fa-floppy-disk"></i>&nbsp; Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="{{ url_for('static', filename='crypto.js') }}"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
