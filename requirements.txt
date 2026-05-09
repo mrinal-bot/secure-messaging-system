@@ -8,3 +8,6 @@ python-dotenv
 flask-cors
 flask-talisman
 flask-mail
+gunicorn
+eventlet
+psycopg2-binary

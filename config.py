@@ -6,10 +6,13 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///secure_msg.db'
+    uri = os.environ.get('DATABASE_URL') or 'sqlite:///secure_msg.db'
+    if uri.startswith("postgres://"):
+        uri = uri.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = uri
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'super-secret-jwt'
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=30)
     HMAC_SECRET_KEY = os.environ.get('HMAC_SECRET_KEY') or 'hmac-secret-key-change-this'
     MAX_MESSAGE_LENGTH = 5000  # Maximum characters per message
     MAX_LOGIN_ATTEMPTS = 5    # Lock threshold for brute-force detection

@@ -1023,9 +1023,9 @@ function formatMessageContent(rawText) {
                 return `<div class="custom-audio-player" id="player_${playerId}"><audio id="${playerId}" src="${safeUrl}" style="display:none;"></audio><button class="audio-play-btn" onclick="toggleAudioPlayer('${playerId}')"><i class="fa-solid fa-play" id="icon_${playerId}"></i></button><div class="audio-waveform-container" onclick="seekAudioPlayer(event, '${playerId}')"><div class="audio-track"><div class="audio-track-fill" id="progress_${playerId}"></div></div><div class="audio-thumb" id="thumb_${playerId}"></div></div><span class="audio-time" id="time_${playerId}">0:00</span><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onload="initAudioPlayer('${playerId}')" style="display:none;"></div>`;
             }
             if (parsed && parsed.type === 'image' && parsed.data) {
-                const safeUrl = parsed.data.replace(/"/g, '%22').replace(/'/g, '%27');
+                const imgId = 'img_' + Math.random().toString(36).substr(2, 9);
                 const safeName = escapeHtml(parsed.filename || 'image');
-                return `<div class="image-message-container"><img src="${safeUrl}" alt="${safeName}" onclick="window.open('${safeUrl}', '_blank')"><br><small class="image-name">${safeName}</small></div>`;
+                return `<div class="image-message-container"><img id="${imgId}" src="${parsed.data}" alt="${safeName}" onclick="openImagePreview('${imgId}')" style="cursor:pointer;"><br><small class="image-name">${safeName}</small></div>`;
             }
             if (parsed && parsed.type === 'file' && parsed.data) {
                 const safeUrl = parsed.data.replace(/"/g, '%22').replace(/'/g, '%27');
@@ -1148,19 +1148,39 @@ async function initApp() {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
     if (storedToken && storedUser) {
-        accessToken = storedToken;
-        currentUser = JSON.parse(storedUser);
-        const storedKeys = await CryptoUtils.loadKeys(currentUser.id);
-        if (storedKeys) userKeyPair = storedKeys;
-        else {
-            userKeyPair = await CryptoUtils.generateRSAKeyPair();
-            await CryptoUtils.storeKeys(currentUser.id, userKeyPair);
+        // Validate the stored token is still valid by checking with the server
+        try {
+            const res = await fetch('/api/auth/me', {
+                headers: { 'Authorization': `Bearer ${storedToken}` }
+            });
+            if (!res.ok) {
+                // Token expired or invalid — clear saved data and show login
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                console.log('[Auth] Saved session expired, showing login.');
+                return;
+            }
+            const freshUser = await res.json();
+            accessToken = storedToken;
+            currentUser = freshUser;
+            localStorage.setItem('user', JSON.stringify(currentUser));
+
+            const storedKeys = await CryptoUtils.loadKeys(currentUser.id);
+            if (storedKeys) userKeyPair = storedKeys;
+            else {
+                userKeyPair = await CryptoUtils.generateRSAKeyPair();
+                await CryptoUtils.storeKeys(currentUser.id, userKeyPair);
+            }
+            showChat();
+            initSocket();
+            loadUsers();
+            startAutoRefresh();
+            showToast(`Welcome back, ${currentUser.display_name || currentUser.username}!`, 'success');
+        } catch (e) {
+            console.error('[Auth] Session restore failed:', e);
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
         }
-        showChat();
-        initSocket();
-        loadUsers();
-        refreshGroupsList();
-        startAutoRefresh();
     }
 }
 
@@ -1311,6 +1331,62 @@ function resetAudioPlayer(id) {
     }
     if (currentlyPlayingAudio === audio) currentlyPlayingAudio = null;
 }
+// ═══════════════════════════════════════
+//  IMAGE PREVIEW MODAL
+// ═══════════════════════════════════════
+function openImagePreview(imgId) {
+    const imgEl = document.getElementById(imgId);
+    if (!imgEl) return;
+    const src = imgEl.src;
+    const alt = imgEl.alt || 'Image';
+
+    // Remove any existing preview
+    closeImagePreview();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'image-preview-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:10000;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:zoom-out;animation:fadeIn 0.2s ease;';
+    overlay.onclick = (e) => { if (e.target === overlay) closeImagePreview(); };
+
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = alt;
+    img.style.cssText = 'max-width:90%;max-height:80vh;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.5);object-fit:contain;cursor:default;';
+
+    const toolbar = document.createElement('div');
+    toolbar.style.cssText = 'margin-top:16px;display:flex;gap:16px;align-items:center;';
+
+    const downloadBtn = document.createElement('a');
+    downloadBtn.href = src;
+    downloadBtn.download = alt;
+    downloadBtn.innerHTML = '<i class="fa-solid fa-download"></i> Download';
+    downloadBtn.style.cssText = 'color:#fff;background:var(--accent, #6c63ff);padding:8px 20px;border-radius:20px;text-decoration:none;font-size:0.85rem;cursor:pointer;';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i> Close';
+    closeBtn.style.cssText = 'color:#fff;background:rgba(255,255,255,0.15);border:none;padding:8px 20px;border-radius:20px;font-size:0.85rem;cursor:pointer;';
+    closeBtn.onclick = closeImagePreview;
+
+    toolbar.appendChild(downloadBtn);
+    toolbar.appendChild(closeBtn);
+    overlay.appendChild(img);
+    overlay.appendChild(toolbar);
+    document.body.appendChild(overlay);
+
+    // Close on Escape key
+    document.addEventListener('keydown', handlePreviewEsc);
+}
+
+function handlePreviewEsc(e) {
+    if (e.key === 'Escape') closeImagePreview();
+}
+
+function closeImagePreview() {
+    const overlay = document.getElementById('image-preview-overlay');
+    if (overlay) overlay.remove();
+    document.removeEventListener('keydown', handlePreviewEsc);
+}
+
 // ═══════════════════════════════════════
 //  STARTUP
 // ═══════════════════════════════════════
