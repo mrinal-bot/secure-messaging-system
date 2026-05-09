@@ -519,3 +519,35 @@ def logout_user():
         db.session.commit()
         log_audit(user.id, 'logout', f"User {user.username} logged out")
     return jsonify({"message": "Logged out"}), 200
+
+
+@auth_bp.route('/delete-account', methods=['DELETE'])
+@jwt_required()
+def delete_account():
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+
+    from models import Message, TypingIndicator, AuditLog, MessageReaction, Mention, MessageRecipient
+
+    # Delete typing indicators involving the user
+    TypingIndicator.query.filter(db.or_(TypingIndicator.sender_id == user.id, TypingIndicator.receiver_id == user.id)).delete()
+    
+    # Delete audit logs
+    AuditLog.query.filter_by(user_id=user.id).delete()
+
+    # Delete messages (cascades will handle recipients, reactions, mentions)
+    messages_to_delete = Message.query.filter(db.or_(Message.sender_id == user.id, Message.receiver_id == user.id)).all()
+    for msg in messages_to_delete:
+        db.session.delete(msg)
+        
+    # Manually cleanup remaining just in case
+    MessageReaction.query.filter_by(user_id=user.id).delete()
+    Mention.query.filter_by(mentioned_user_id=user.id).delete()
+    MessageRecipient.query.filter_by(receiver_id=user.id).delete()
+
+    db.session.delete(user)
+    db.session.commit()
+
+    return jsonify({"message": "Account deleted successfully"}), 200

@@ -367,6 +367,30 @@ function closeProfileModal() {
     document.getElementById('profile-modal').classList.add('hidden');
 }
 
+async function deleteAccount() {
+    if (!confirm("Are you sure you want to PERMANENTLY delete your account?\n\nThis will delete all your messages and data. This action CANNOT be undone.")) {
+        return;
+    }
+    
+    try {
+        const res = await fetch('/api/auth/delete-account', {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        
+        if (res.ok) {
+            alert("Your account has been deleted successfully.");
+            localStorage.clear();
+            location.reload();
+        } else {
+            const data = await res.json();
+            showToast(data.message || 'Failed to delete account', 'error');
+        }
+    } catch (e) {
+        showToast('Network error while deleting account', 'error');
+    }
+}
+
 async function updateProfile() {
     const newName = document.getElementById('edit-display-name').value.trim();
     if (!newName) return showToast('Name cannot be empty', 'warning');

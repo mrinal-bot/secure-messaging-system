@@ -171,6 +171,9 @@
                         <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme" id="theme-toggle-btn">
                             <i class="fa-solid fa-moon"></i>
                         </button>
+                        <button class="icon-btn" onclick="showProfileModal()" title="Profile & Settings">
+                            <i class="fa-solid fa-gear"></i>
+                        </button>
                         <button class="icon-btn" onclick="toggleSecurityPanel()" title="Security Dashboard">
                             <i class="fa-solid fa-shield-halved"></i>
                         </button>
@@ -353,6 +356,12 @@
                 </div>
                 <button onclick="updateProfile()" class="btn-primary" style="margin-top:16px;">
                     <i class="fa-solid fa-floppy-disk"></i>&nbsp; Save Changes
+                </button>
+                <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border);">
+                <h4 style="color: var(--danger); margin-bottom: 8px;">Danger Zone</h4>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px;">Permanently delete your account and all your data. This action cannot be undone.</p>
+                <button onclick="deleteAccount()" class="btn-primary" style="background-color: var(--danger); border-color: var(--danger);">
+                    <i class="fa-solid fa-trash"></i>&nbsp; Delete Account
                 </button>
             </div>
         </div>
