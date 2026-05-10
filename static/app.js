@@ -112,10 +112,10 @@ function showForgot(mode) {
     recoveryMode = mode;
     document.getElementById('login-form').classList.add('hidden');
     document.getElementById('forgot-form').classList.remove('hidden');
-    
+
     const title = document.getElementById('forgot-title');
     const subtitle = document.getElementById('forgot-subtitle');
-    
+
     if (mode === 'username') {
         title.textContent = 'Recover Username';
         subtitle.textContent = 'Enter your email and we will send you your username.';
@@ -137,7 +137,7 @@ async function requestRecovery() {
             body: JSON.stringify({ email })
         });
         const data = await res.json();
-        
+
         if (res.ok) {
             showToast(data.message, 'success');
             if (recoveryMode === 'password' && data.user_id) {
@@ -269,7 +269,7 @@ async function verifyOTP() {
         const data = await res.json();
         if (res.ok) {
             showToast(data.message, 'success');
-            
+
             if (data.access_token) {
                 // This was a 2FA login success
                 accessToken = data.access_token;
@@ -285,7 +285,7 @@ async function verifyOTP() {
                     userKeyPair = await CryptoUtils.generateRSAKeyPair();
                     await CryptoUtils.storeKeys(currentUser.id, userKeyPair);
                 }
-                
+
                 resetAuthFlow();
                 await initAppAfterAuth();
             } else {
@@ -371,13 +371,13 @@ async function deleteAccount() {
     if (!confirm("Are you sure you want to PERMANENTLY delete your account?\n\nThis will delete all your messages and data. This action CANNOT be undone.")) {
         return;
     }
-    
+
     try {
         const res = await fetch('/api/auth/delete-account', {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${accessToken}` }
         });
-        
+
         if (res.ok) {
             alert("Your account has been deleted successfully.");
             localStorage.clear();
@@ -475,7 +475,7 @@ function initSocket() {
                     if (parsed && parsed.type === 'audio') preview = '🎤 Voice Message';
                     else if (parsed && parsed.type === 'image') preview = '📷 Photo';
                     else if (parsed && parsed.type === 'file') preview = '📄 File';
-                } catch(e) {}
+                } catch (e) { }
             }
             lastMessages[data.sender_id] = preview;
 
@@ -671,7 +671,7 @@ async function selectUser(user) {
 
 async function clearChat() {
     if (!currentRecipient) return;
-    
+
     const confirmed = confirm(`Are you sure you want to CLEAR the entire chat with ${currentRecipient.username}?\n\nThis will permanently delete all messages for BOTH of you.`);
     if (!confirmed) return;
 
@@ -685,7 +685,7 @@ async function clearChat() {
             // Clear local data
             messages[currentRecipient.id] = [];
             lastMessages[currentRecipient.id] = 'Chat cleared';
-            
+
             // UI Updates
             renderMessages();
             renderUserList(usersCache);
@@ -737,7 +737,7 @@ async function loadMessageHistory(userId) {
                             if (parsed && parsed.type === 'audio') preview = '🎤 Voice Message';
                             else if (parsed && parsed.type === 'image') preview = '📷 Photo';
                             else if (parsed && parsed.type === 'file') preview = '📄 File';
-                        } catch(e) {}
+                        } catch (e) { }
                     }
                     lastMessages[userId] = preview;
                 } else if (isMe && msg.encrypted_key_sender) {
@@ -752,7 +752,7 @@ async function loadMessageHistory(userId) {
                             if (parsed && parsed.type === 'audio') preview = '🎤 Voice Message';
                             else if (parsed && parsed.type === 'image') preview = '📷 Photo';
                             else if (parsed && parsed.type === 'file') preview = '📄 File';
-                        } catch(e) {}
+                        } catch (e) { }
                     }
                     lastMessages[userId] = preview;
                 } else {
@@ -822,13 +822,13 @@ async function sendMessage(overrideText = null) {
                 if (parsed && parsed.type === 'audio') previewText = '🎤 Voice Message';
                 else if (parsed && parsed.type === 'image') previewText = '📷 Photo';
                 else if (parsed && parsed.type === 'file') previewText = '📄 File';
-            } catch(e) {}
+            } catch (e) { }
         }
         lastMessages[currentRecipient.id] = previewText;
         if (!usersCache.find(u => u.id === currentRecipient.id)) {
             usersCache.push(currentRecipient);
         }
-        
+
         // Clear search if active, otherwise just re-render
         const searchInput = document.getElementById('search-input');
         if (searchInput && searchInput.value.trim() !== '') {
@@ -842,7 +842,7 @@ async function sendMessage(overrideText = null) {
             input.value = '';
             input.style.height = 'auto';
             const btn = document.getElementById('main-action-btn');
-            if(btn) { btn.innerHTML = '<i class="fa-solid fa-microphone"></i>'; btn.title = "Record Voice Message"; }
+            if (btn) { btn.innerHTML = '<i class="fa-solid fa-microphone"></i>'; btn.title = "Record Voice Message"; }
         }
         renderMessages();
         emitTyping(false);
@@ -871,8 +871,8 @@ function handleMainAction() {
 
 document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('message-input');
-    if(input) {
-        input.addEventListener('input', function() {
+    if (input) {
+        input.addEventListener('input', function () {
             const btn = document.getElementById('main-action-btn');
             if (!btn) return;
             if (this.value.trim().length > 0) {
@@ -897,10 +897,10 @@ async function startVoiceRecording() {
         };
 
         mediaRecorder.start();
-        
+
         document.getElementById('text-input-row').classList.add('hidden');
         document.getElementById('voice-recording-row').classList.remove('hidden');
-        
+
         recordingSeconds = 0;
         document.getElementById('recording-time').textContent = '00:00';
         recordingInterval = setInterval(() => {
@@ -909,7 +909,7 @@ async function startVoiceRecording() {
             const s = String(recordingSeconds % 60).padStart(2, '0');
             document.getElementById('recording-time').textContent = `${m}:${s}`;
         }, 1000);
-        
+
     } catch (err) {
         showToast('Microphone access denied or unavailable.', 'error');
     }
@@ -918,15 +918,15 @@ async function startVoiceRecording() {
 function stopRecording(callback) {
     if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
     clearInterval(recordingInterval);
-    
+
     mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
         mediaRecorder.stream.getTracks().forEach(track => track.stop());
         mediaRecorder = null;
-        
+
         document.getElementById('text-input-row').classList.remove('hidden');
         document.getElementById('voice-recording-row').classList.add('hidden');
-        
+
         if (callback) callback(audioBlob);
     };
     mediaRecorder.stop();
@@ -974,7 +974,7 @@ function renderMessages() {
                 const p = JSON.parse(msg.text);
                 // All media (audio, image, file) should use the media-bubble style
                 if (p && (p.type === 'audio' || p.type === 'image' || p.type === 'file')) isMediaBubble = true;
-            } catch(e) {}
+            } catch (e) { }
         }
         const bubbleClass = isMediaBubble ? 'message-bubble media-bubble' : 'message-bubble';
 
@@ -999,7 +999,7 @@ function renderMessages() {
 function handleFileAttachment(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     if (file.size > 7 * 1024 * 1024) {
         showToast('File must be smaller than 7MB', 'error');
         event.target.value = '';
@@ -1063,7 +1063,7 @@ function formatMessageContent(rawText) {
                             </a>
                         </div>`;
             }
-        } catch(e) {}
+        } catch (e) { }
     }
     return escapeHtml(rawText);
 }
@@ -1091,20 +1091,20 @@ async function handleSearch(query) {
     searchTimeout = setTimeout(async () => {
         const q = query.trim().toLowerCase();
         if (!q) { renderUserList(usersCache); return; }
-        
+
         try {
             // Find local matches first
-            const localMatches = usersCache.filter(u => 
-                u.username.toLowerCase().includes(q) || 
+            const localMatches = usersCache.filter(u =>
+                u.username.toLowerCase().includes(q) ||
                 (u.display_name && u.display_name.toLowerCase().includes(q)) ||
-                u.email.toLowerCase() === q || 
+                u.email.toLowerCase() === q ||
                 (u.phone && u.phone.toLowerCase().includes(q))
             );
 
             // Fetch server matches (for finding new users by exact email/phone)
             const res = await fetch(`/api/auth/search?q=${encodeURIComponent(q)}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
             const serverUsers = await res.json();
-            
+
             // Merge results, preferring server data if duplicates exist
             const displayUsers = [...localMatches];
             serverUsers.forEach(u => {
@@ -1112,14 +1112,14 @@ async function handleSearch(query) {
                     displayUsers.push(u);
                 }
             });
-            
+
             renderUserList(displayUsers);
-        } catch (e) { 
+        } catch (e) {
             // Fallback to local filtering if network fails
-            renderUserList(usersCache.filter(u => 
-                u.username.toLowerCase().includes(q) || 
+            renderUserList(usersCache.filter(u =>
+                u.username.toLowerCase().includes(q) ||
                 (u.display_name && u.display_name.toLowerCase().includes(q)) ||
-                u.email.toLowerCase() === q || 
+                u.email.toLowerCase() === q ||
                 (u.phone && u.phone.toLowerCase().includes(q))
             ));
         }
@@ -1254,7 +1254,7 @@ function initAudioPlayer(id) {
     const audio = document.getElementById(id);
     const timeEl = document.getElementById('time_' + id);
     if (!audio || !timeEl) return;
-    
+
     audio.addEventListener('timeupdate', () => updateAudioPlayer(id));
     audio.addEventListener('ended', () => resetAudioPlayer(id));
 
@@ -1283,7 +1283,7 @@ function toggleAudioPlayer(id) {
     const audio = document.getElementById(id);
     const icon = document.getElementById('icon_' + id);
     if (!audio) return;
-    
+
     if (currentlyPlayingAudio && currentlyPlayingAudio !== audio) {
         currentlyPlayingAudio.pause();
         const prevIcon = document.getElementById('icon_' + currentlyPlayingAudio.id);
@@ -1291,7 +1291,7 @@ function toggleAudioPlayer(id) {
         const prevPlayer = currentlyPlayingAudio.closest('.custom-audio-player');
         if (prevPlayer) prevPlayer.classList.remove('playing');
     }
-    
+
     if (audio.paused) {
         audio.play().then(() => {
             icon.className = 'fa-solid fa-pause';
@@ -1314,12 +1314,12 @@ function updateAudioPlayer(id) {
     const thumb = document.getElementById('thumb_' + id);
     const timeEl = document.getElementById('time_' + id);
     if (!audio || !progress || !thumb || !timeEl) return;
-    
+
     if (audio.duration === Infinity || isNaN(audio.duration)) {
         timeEl.textContent = formatAudioTime(audio.currentTime);
         return;
     }
-    
+
     const pct = (audio.currentTime / audio.duration) * 100 || 0;
     progress.style.width = pct + '%';
     thumb.style.left = pct + '%';
@@ -1341,7 +1341,7 @@ function resetAudioPlayer(id) {
     const audio = document.getElementById(id);
     const progress = document.getElementById('progress_' + id);
     const thumb = document.getElementById('thumb_' + id);
-    
+
     if (icon) icon.className = 'fa-solid fa-play';
     if (progress) progress.style.width = '0%';
     if (thumb) thumb.style.left = '0%';

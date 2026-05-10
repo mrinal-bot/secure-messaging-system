@@ -61,6 +61,7 @@ def send_otp_email(user, bypass_cooldown=False):
         return False, f"Please wait {max(wait_seconds, 1)}s before requesting a new OTP."
 
     otp = generate_otp()
+    print(f"\n[DEVELOPMENT] Generated OTP for {user.email}: {otp}\n")
     # Hash the OTP before storing it for maximum security
     user.otp_code = bcrypt.generate_password_hash(otp).decode('utf-8')
     user.otp_expiry = now + timedelta(minutes=Config.OTP_EXPIRY_MINUTES)
@@ -72,15 +73,27 @@ def send_otp_email(user, bypass_cooldown=False):
     try:
         from app import mail
         from flask import current_app
+        from threading import Thread
+
         msg = MailMessage(
             "Security Code: Verify your Identity",
             recipients=[user.email],
             body=f"Your secure login code is: {otp}\n\nThis code will expire in 5 minutes.",
             sender=current_app.config.get('MAIL_DEFAULT_SENDER')
         )
-        mail.send(msg)
-    except Exception:
-        pass
+        
+        def send_async_email(app, message):
+            with app.app_context():
+                try:
+                    mail.send(message)
+                except Exception as e:
+                    print(f"Background Mail Error: {e}")
+
+        app_obj = current_app._get_current_object()
+        Thread(target=send_async_email, args=(app_obj, msg)).start()
+        
+    except Exception as e:
+        print(f"Error initiating mail: {e}")
     return True, "OTP sent."
 
 

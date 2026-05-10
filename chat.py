@@ -131,7 +131,9 @@ def init_chat_events(socketio):
                 'message': encrypted_msg,
                 'encrypted_key': enc_key,
                 'quoted_message_id': quoted_message_id,  # Phase 3
-                'timestamp': str(new_msg.timestamp)
+                'timestamp': str(new_msg.timestamp),
+                'message_hash': message_hash,
+                'hmac_signature': hmac_signature
             }, room=str(rid))
             
         db.session.commit()

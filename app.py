@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 from flask import Flask, jsonify
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
@@ -7,6 +10,7 @@ from flask_talisman import Talisman
 from flask_mail import Mail
 from config import Config
 from models import db
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 bcrypt = Bcrypt()
 jwt = JWTManager()
@@ -17,6 +21,9 @@ mail = Mail()
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    
+    # Handle reverse proxy headers on Render
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     # Initialize extensions
     db.init_app(app)
@@ -51,6 +58,8 @@ def create_app():
             "wss://127.0.0.1:*",
             "ws://localhost:*",
             "wss://localhost:*",
+            "ws:",
+            "wss:",
         ],
         'img-src': "'self' data: blob:",
         'media-src': "'self' data: blob:",
@@ -94,4 +103,8 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
+    print("=" * 60)
+    print("Server is running! Open your browser to:")
+    print("http://127.0.0.1:5000")
+    print("=" * 60)
+    socketio.run(app, host="127.0.0.1", port=5000, debug=True, use_reloader=False, allow_unsafe_werkzeug=True)

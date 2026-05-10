@@ -80,6 +80,10 @@ const CryptoUtils = {
         return await window.crypto.subtle.generateKey({ name: "HMAC", hash: "SHA-256" }, true, ["sign", "verify"]);
     },
 
+    async importHMACKey(rawKey) {
+        return await window.crypto.subtle.importKey("raw", rawKey, { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
+    },
+
     async signHMAC(data, hmacKey) {
         const encoded = new TextEncoder().encode(data);
         const sig = await window.crypto.subtle.sign("HMAC", hmacKey, encoded);
